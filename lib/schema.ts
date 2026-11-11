@@ -126,4 +126,8 @@ CREATE TABLE IF NOT EXISTS event (
   payload JSONB,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Agentic reorders: Mom's PayPal saved with PayPal Vault (buyer-not-present payments).
+ALTER TABLE member ADD COLUMN IF NOT EXISTS paypal_vault_id TEXT;
+ALTER TABLE purchase ADD COLUMN IF NOT EXISTS initiated_by TEXT NOT NULL DEFAULT 'parent';
 `;

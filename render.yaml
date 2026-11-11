@@ -1,0 +1,54 @@
+# One-click deploy: Render Dashboard → New → Blueprint → this repo.
+services:
+  - type: web
+    name: holdon
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/state
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: holdon-db
+          property: connectionString
+      - key: CRON_SECRET
+        generateValue: true
+      - key: PAYPAL_ENV
+        value: sandbox
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_WEBHOOK_ID
+        sync: false
+      - key: MISTRAL_API_KEY
+        sync: false
+      - key: CHANNEL3_API_KEY
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: APP_URL
+        sync: false
+
+  # Bad Cop nudge ladder + releasing undecided holds, every hour.
+  - type: cron
+    name: holdon-tick
+    runtime: node
+    schedule: "0 * * * *"
+    buildCommand: "true"
+    startCommand: curl -fsS "$APP_URL/api/cron/tick?secret=$CRON_SECRET"
+    envVars:
+      - key: APP_URL
+        sync: false
+      - key: CRON_SECRET
+        fromService:
+          type: web
+          name: holdon
+          envVarKey: CRON_SECRET
+
+databases:
+  - name: holdon-db
+    plan: free

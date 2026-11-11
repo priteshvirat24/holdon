@@ -20,6 +20,8 @@ export async function createAuthorizeOrder(p: {
   amountCents: number;
   description: string;
   merchantName: string;
+  /** Ask PayPal to save Mom's PayPal (Vault v3) so trusted refills can run without her later. */
+  saveForReorder?: boolean;
 }): Promise<{ orderId: string }> {
   if (sim()) return { orderId: fakeId("ORDER") };
   const order = await paypal<any>("POST", "/v2/checkout/orders", {
@@ -42,7 +44,15 @@ export async function createAuthorizeOrder(p: {
             brand_name: "HoldOn",
             shipping_preference: "NO_SHIPPING",
             user_action: "CONTINUE",
+            // Required by PayPal when vaulting; the JS SDK popup flow doesn't navigate to them.
+            return_url: `${process.env.APP_URL || "http://localhost:3000"}/mom?paypal=return`,
+            cancel_url: `${process.env.APP_URL || "http://localhost:3000"}/mom?paypal=cancel`,
           },
+          ...(p.saveForReorder
+            ? {
+                attributes: { vault: { store_in_vault: "ON_SUCCESS", usage_type: "MERCHANT", customer_type: "CONSUMER" } },
+              }
+            : {}),
         },
       },
     },
@@ -55,12 +65,14 @@ export async function authorizeOrder(p: { orderId: string; purchaseId: string; f
   authorizationId: string;
   status: string;
   expiresAt: string | null;
+  vaultId: string | null;
 }> {
   if (sim()) {
     return {
       authorizationId: fakeId("AUTH"),
       status: "CREATED",
       expiresAt: new Date(Date.now() + 29 * 86400_000).toISOString(),
+      vaultId: fakeId("VAULT"),
     };
   }
   const r = await paypal<any>("POST", `/v2/checkout/orders/${p.orderId}/authorize`, {
@@ -70,7 +82,13 @@ export async function authorizeOrder(p: { orderId: string; purchaseId: string; f
   });
   const auth = r.purchase_units?.[0]?.payments?.authorizations?.[0];
   if (!auth?.id) throw new Error("PayPal authorize returned no authorization");
-  return { authorizationId: auth.id, status: auth.status, expiresAt: auth.expiration_time ?? null };
+  const vault = r.payment_source?.paypal?.attributes?.vault;
+  return {
+    authorizationId: auth.id,
+    status: auth.status,
+    expiresAt: auth.expiration_time ?? null,
+    vaultId: vault?.status === "VAULTED" || vault?.id ? (vault.id as string) : null,
+  };
 }
 
 export async function captureAuthorization(p: { authorizationId: string; purchaseId: string; familyId: string }) {
@@ -217,4 +235,122 @@ export async function verifyWebhook(headers: Headers, event: unknown): Promise<b
     },
   });
   return r.verification_status === "SUCCESS";
+}
+
+// ---------------------------------------------------------------- Sibling pay page (Orders CAPTURE)
+
+/** A sibling pays their share from the HoldOn pay page (PayPal popup) instead of the hosted invoice. */
+export async function createShareOrder(p: { contributionId: string; familyId: string; amountCents: number; description: string }) {
+  if (sim()) return { orderId: fakeId("ORDER") };
+  const o = await paypal<any>("POST", "/v2/checkout/orders", {
+    familyId: p.familyId,
+    requestId: `share-${p.contributionId}`,
+    body: {
+      intent: "CAPTURE",
+      purchase_units: [
+        {
+          reference_id: p.contributionId,
+          custom_id: p.contributionId,
+          description: p.description.slice(0, 127),
+          amount: { currency_code: "USD", value: centsToValue(p.amountCents) },
+        },
+      ],
+      payment_source: {
+        paypal: { experience_context: { brand_name: "HoldOn", shipping_preference: "NO_SHIPPING", user_action: "PAY_NOW" } },
+      },
+    },
+  });
+  return { orderId: o.id as string };
+}
+
+export async function captureShareOrder(p: { orderId: string; contributionId: string; familyId: string }) {
+  if (sim()) return { captureId: fakeId("CAPTURE"), status: "COMPLETED" };
+  const r = await paypal<any>("POST", `/v2/checkout/orders/${p.orderId}/capture`, {
+    familyId: p.familyId,
+    requestId: `share-capture-${p.contributionId}`,
+    body: {},
+  });
+  const cap = r.purchase_units?.[0]?.payments?.captures?.[0];
+  return { captureId: cap?.id as string, status: (cap?.status ?? r.status) as string };
+}
+
+/** Mark the PayPal invoice paid when the share was paid through the pay page, so PayPal's records match. */
+export async function recordInvoicePayment(p: { invoiceId: string; familyId: string; amountCents: number; orderId: string; method?: "PAYPAL" | "BANK_TRANSFER" | "CASH" }) {
+  if (sim() || p.invoiceId.startsWith("SIM-") || p.invoiceId === "SEEDED-HISTORY") return;
+  await paypal("POST", `/v2/invoicing/invoices/${p.invoiceId}/payments`, {
+    familyId: p.familyId,
+    requestId: `inv-pay-${p.invoiceId}`,
+    body: {
+      method: p.method ?? "PAYPAL",
+      payment_date: new Date().toISOString().slice(0, 10),
+      note: p.method && p.method !== "PAYPAL" ? `Recorded in HoldOn (${p.method.toLowerCase().replace("_", " ")})` : `Paid in HoldOn via PayPal order ${p.orderId}`,
+      amount: { currency_code: "USD", value: centsToValue(p.amountCents) },
+    },
+  });
+}
+
+// ---------------------------------------------------------------- Webhook registration
+
+export const WEBHOOK_EVENTS = [
+  "CHECKOUT.ORDER.APPROVED",
+  "PAYMENT.AUTHORIZATION.CREATED",
+  "PAYMENT.AUTHORIZATION.VOIDED",
+  "PAYMENT.CAPTURE.COMPLETED",
+  "PAYMENT.CAPTURE.DENIED",
+  "INVOICING.INVOICE.PAID",
+  "INVOICING.INVOICE.CANCELLED",
+  "PAYMENT.PAYOUTSBATCH.SUCCESS",
+  "PAYMENT.PAYOUTSBATCH.DENIED",
+];
+
+/** Find or create the webhook for a public base URL (Render / tunnel). Returns its id for PAYPAL_WEBHOOK_ID. */
+export async function ensureWebhook(publicBaseUrl: string) {
+  const url = `${publicBaseUrl.replace(/\/$/, "")}/api/paypal/webhook`;
+  const list = await paypal<any>("GET", "/v1/notifications/webhooks");
+  const found = (list.webhooks ?? []).find((w: any) => w.url === url);
+  if (found) return found.id as string;
+  const created = await paypal<any>("POST", "/v1/notifications/webhooks", {
+    body: { url, event_types: WEBHOOK_EVENTS.map((name) => ({ name })) },
+  });
+  return created.id as string;
+}
+
+// ---------------------------------------------------------------- Vault: buyer-not-present reorder
+
+/**
+ * Agentic reorder with Mom's saved PayPal (Vault v3 payment token). No popup, no Mom.
+ * Still intent AUTHORIZE: the same HoldOn risk check decides capture or void.
+ */
+export async function createVaultedAuthorization(p: {
+  purchaseId: string;
+  familyId: string;
+  amountCents: number;
+  description: string;
+  merchantName: string;
+  vaultId: string;
+}): Promise<{ orderId: string; authorizationId: string }> {
+  if (sim()) return { orderId: fakeId("ORDER"), authorizationId: fakeId("AUTH") };
+  const order = await paypal<any>("POST", "/v2/checkout/orders", {
+    familyId: p.familyId,
+    requestId: `vault-create-${p.purchaseId}`,
+    body: {
+      intent: "AUTHORIZE",
+      purchase_units: [
+        {
+          reference_id: p.purchaseId,
+          custom_id: p.purchaseId,
+          description: `${p.description} · ${p.merchantName} (HoldOn monthly refill)`.slice(0, 127),
+          soft_descriptor: "HOLDON",
+          amount: { currency_code: "USD", value: centsToValue(p.amountCents) },
+        },
+      ],
+      payment_source: { paypal: { vault_id: p.vaultId } },
+    },
+  });
+  let authId: string | undefined = order.purchase_units?.[0]?.payments?.authorizations?.[0]?.id;
+  if (!authId) {
+    const a = await authorizeOrder({ orderId: order.id, purchaseId: p.purchaseId, familyId: p.familyId });
+    authId = a.authorizationId;
+  }
+  return { orderId: order.id, authorizationId: authId };
 }

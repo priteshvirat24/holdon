@@ -1,103 +1,48 @@
-import Image from "next/image";
+import Link from "next/link";
+import { Logo } from "./ui";
 
 export default function Home() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <main className="mx-auto max-w-5xl px-5 py-10">
+      <header className="flex items-center justify-between">
+        <Logo />
+        <nav className="flex gap-4 text-sm">
+          <Link href="/demo" className="underline">Demo panel</Link>
+          <Link href="/dashboard" className="underline">Ledger</Link>
+        </nav>
+      </header>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      <section className="mt-16 max-w-3xl">
+        <h1 className="font-display text-5xl leading-[1.05] sm:text-6xl">
+          The family wallet that knows when to say <span className="text-marigold">&ldquo;hold on.&rdquo;</span>
+        </h1>
+        <p className="mt-6 text-xl leading-relaxed text-muted">
+          Siblings chip in for Mom. Mom spends. HoldOn&apos;s AI collects the money so nobody has to nag, and puts every risky
+          payment on a real <b className="text-ink">PayPal authorization hold</b> until family says yes.
+        </p>
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Link href="/stage" className="rounded-full bg-ink px-6 py-3 font-semibold text-white">See it in action →</Link>
+          <Link href="/demo" className="rounded-full border border-line bg-card px-6 py-3 font-semibold">Run the demo yourself</Link>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+      </section>
+
+      <section className="mt-16 grid gap-4 md:grid-cols-3">
+        {[
+          ["📬", "Bad Cop", "PayPal invoices go out monthly. Late siblings get AI-written nudges on an escalating ladder, and the agent handles “pay half”, “next Friday” or “can you cover me?”."],
+          ["✋", "Guardian", "Mom's purchase is authorized, not captured. HoldOn checks domain age, the real market price (Channel3) and the page itself, then captures, or asks family."],
+          ["💸", "Settled", "When everyone's in, a PayPal Payout sends Mom her allowance. Every PayPal call, agent decision and webhook lands in the family ledger."],
+        ].map(([icon, title, text]) => (
+          <div key={title} className="rounded-3xl border border-line bg-card p-6">
+            <div className="text-3xl">{icon}</div>
+            <h2 className="font-display mt-3 text-2xl">{title}</h2>
+            <p className="mt-2 text-muted">{text}</p>
+          </div>
+        ))}
+      </section>
+
+      <footer className="mt-16 border-t border-line pt-6 text-sm text-muted">
+        Built for the PayPal AI Hackathon · PayPal Orders, Payments, Invoicing, Payouts &amp; Webhooks (sandbox) · Mistral · Channel3 · AG Grid
       </footer>
-    </div>
+    </main>
   );
 }
