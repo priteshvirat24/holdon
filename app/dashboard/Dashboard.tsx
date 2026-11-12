@@ -38,7 +38,7 @@ type Row = {
 };
 
 function RiskCell({ value }: { value: number | null }) {
-  if (value == null) return <span className="text-muted">—</span>;
+  if (value == null) return <span className="text-muted-foreground">—</span>;
   const color = value >= 60 ? "#d9534f" : value >= 30 ? "#e8a317" : "#2f7d5b";
   return (
     <span className="flex h-full items-center gap-2">
@@ -128,7 +128,7 @@ export default function Dashboard() {
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Logo />
-          <span className="text-muted">/ {snap?.family?.name ?? "…"} family ledger</span>
+          <span className="text-muted-foreground">/ {snap?.family?.name ?? "…"} family ledger</span>
         </div>
         <div className="flex items-center gap-3 text-sm">
           <ModeBadge integrations={snap?.integrations} />
@@ -162,9 +162,9 @@ export default function Dashboard() {
                   <span className={`font-mono font-semibold ${e.type.includes("error") ? "text-coral" : e.source === "paypal" || e.source === "paypal_webhook" ? "text-sky" : e.source === "agent" ? "text-[#8a5a00]" : "text-ink"}`}>
                     {e.type}
                   </span>
-                  <span className="shrink-0 text-muted">{new Date(e.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span>
+                  <span className="shrink-0 text-muted-foreground">{new Date(e.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span>
                 </div>
-                <div className="truncate text-muted">{summarize(e)}</div>
+                <div className="truncate text-muted-foreground">{summarize(e)}</div>
               </li>
             ))}
           </ol>
@@ -187,14 +187,14 @@ function summarize(e: any) {
 function Kpi({ label, value, sub, tone, bar }: { label: string; value: string; sub?: string; tone?: "sage" | "coral"; bar?: number }) {
   return (
     <div className="rounded-2xl border border-line bg-card p-4">
-      <div className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</div>
+      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</div>
       <div className={`font-display mt-1 text-3xl tabular ${tone === "sage" ? "text-sage" : tone === "coral" ? "text-coral" : ""}`}>{value}</div>
       {bar != null && (
         <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#efe9df]">
           <div className="h-full rounded-full bg-sage transition-all duration-700" style={{ width: `${bar}%` }} />
         </div>
       )}
-      {sub && <div className="mt-1 text-xs text-muted">{sub}</div>}
+      {sub && <div className="mt-1 text-xs text-muted-foreground">{sub}</div>}
     </div>
   );
 }
@@ -213,10 +213,10 @@ function EvalStrip() {
       <span className="font-semibold">Risk engine eval</span>
       {items.map(([v, l]) => (
         <span key={l}>
-          <b className="font-display text-lg tabular">{v}</b> <span className="text-muted">{l}</span>
+          <b className="font-display text-lg tabular">{v}</b> <span className="text-muted-foreground">{l}</span>
         </span>
       ))}
-      <a href="https://github.com/priteshvirat24/holdon/blob/main/evals/SCORECARD.md" className="ml-auto text-xs text-muted underline">
+      <a href="https://github.com/priteshvirat24/holdon/blob/main/evals/SCORECARD.md" className="ml-auto text-xs text-muted-foreground underline">
         20 labelled shops · npm run eval
       </a>
     </section>
@@ -235,7 +235,7 @@ function OutcomeChart({ purchases }: { purchases: any[] }) {
     <div className="rounded-2xl border border-line bg-card p-3">
       <h2 className="px-1 text-sm font-semibold">Mom&apos;s purchases by outcome</h2>
       {data.length === 0 ? (
-        <p className="px-1 py-10 text-center text-sm text-muted">No purchases yet. Try Mom Mode.</p>
+        <p className="px-1 py-10 text-center text-sm text-muted-foreground">No purchases yet. Try Mom Mode.</p>
       ) : (
         <div style={{ height: 190 }}>
           <AgCharts

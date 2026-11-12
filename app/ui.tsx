@@ -52,20 +52,20 @@ const STATE_TONE: Record<string, string> = {
   SCORING: "bg-sky-soft text-sky",
   AUTHORIZED: "bg-sky-soft text-sky",
   AWAITING_BUYER: "bg-marigold-soft text-[#8a5a00]",
-  VOIDED: "bg-[#efe9df] text-muted",
-  DECLINED: "bg-[#efe9df] text-muted",
-  TIMED_OUT: "bg-[#efe9df] text-muted",
+  VOIDED: "bg-[#efe9df] text-muted-foreground",
+  DECLINED: "bg-[#efe9df] text-muted-foreground",
+  TIMED_OUT: "bg-[#efe9df] text-muted-foreground",
   HARD_BLOCKED: "bg-coral-soft text-coral",
   FAILED: "bg-coral-soft text-coral",
   paid: "bg-sage-soft text-sage",
   sent: "bg-marigold-soft text-[#8a5a00]",
-  cancelled: "bg-[#efe9df] text-muted",
+  cancelled: "bg-[#efe9df] text-muted-foreground",
   covered: "bg-sky-soft text-sky",
 };
 
 export function Pill({ state, label }: { state: string; label?: string }) {
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATE_TONE[state] ?? "bg-[#efe9df] text-muted"}`}>
+    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATE_TONE[state] ?? "bg-[#efe9df] text-muted-foreground"}`}>
       {label ?? state.replace(/_/g, " ").toLowerCase()}
     </span>
   );

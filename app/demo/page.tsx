@@ -36,7 +36,7 @@ export default function DemoPanel() {
       <header className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Logo />
-          <span className="text-muted">/ demo panel</span>
+          <span className="text-muted-foreground">/ demo panel</span>
         </div>
         <ModeBadge integrations={i} />
       </header>
@@ -49,7 +49,7 @@ export default function DemoPanel() {
           ["Telegram", i ? (i.telegram ? "connected" : "web chat only") : "…"],
         ].map(([k, v]) => (
           <div key={k} className="rounded-2xl border border-line bg-card px-4 py-3">
-            <div className="text-xs font-semibold uppercase tracking-wide text-muted">{k}</div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{k}</div>
             <div className="mt-0.5 font-semibold">{v}</div>
           </div>
         ))}
@@ -59,7 +59,7 @@ export default function DemoPanel() {
         <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
           <span>
             Family clock: <b className="tabular">{snap?.now ? new Date(snap.now).toLocaleString() : "…"}</b>
-            {snap?.family?.clock_offset_days ? <span className="text-muted"> (+{snap.family.clock_offset_days} days)</span> : null}
+            {snap?.family?.clock_offset_days ? <span className="text-muted-foreground"> (+{snap.family.clock_offset_days} days)</span> : null}
           </span>
           <span>
             Fund: <b className="tabular">{snap?.fund ? `${dollars(snap.fund.collected)} / ${dollars(snap.fund.target)}` : "…"}</b>
@@ -74,7 +74,7 @@ export default function DemoPanel() {
               className="rounded-xl border border-line bg-paper px-4 py-3 text-left hover:border-marigold disabled:opacity-50"
             >
               <div className="font-semibold">{busy === a.key ? "Working…" : a.label}</div>
-              <div className="text-xs text-muted">{a.hint}</div>
+              <div className="text-xs text-muted-foreground">{a.hint}</div>
             </button>
           ))}
         </div>
@@ -85,11 +85,12 @@ export default function DemoPanel() {
           <div className="font-display text-2xl">Stage view →</div>
           <div className="mt-1 text-sm text-white/70">Mom&apos;s tablet and Priya&apos;s phone side by side. Use this for the video.</div>
         </Link>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {[
             ["/mom", "Mom Mode"],
             ["/family", "Family chat"],
             ["/dashboard", "Ledger"],
+            ["/shop", "Shop (Channel3)"],
             ["/stores/luxerelax", "Scam store"],
           ].map(([href, label]) => (
             <Link key={href} href={href} className="flex items-center justify-center rounded-2xl border border-line bg-card p-3 font-semibold hover:border-marigold">
@@ -100,7 +101,7 @@ export default function DemoPanel() {
       </section>
 
       <section className="mt-6">
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted">Script</h2>
+        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Script</h2>
         <ol className="list-decimal space-y-1 pl-5 text-sm">
           <li>Reset &amp; seed. In the family chat (as Anil), try &ldquo;can I pay half now?&rdquo; or &ldquo;Priya can you cover me?&rdquo;.</li>
           <li>Fast-forward 3 days to show the Bad Cop ladder escalate (group → PayPal reminder → private note to Priya).</li>
@@ -108,6 +109,7 @@ export default function DemoPanel() {
           <li>In Mom Mode, buy the blood-pressure tablets: checked and captured automatically. PayPal also saves her PayPal (Vault).</li>
           <li>Press &ldquo;Agent: monthly medicine refill&rdquo;: HoldOn buys the refill by itself with the saved PayPal, with no popup and the same checks.</li>
           <li>Ask for &ldquo;that massage chair from Facebook&rdquo;: PayPal authorizes, HoldOn holds it, and Priya declines. The authorization is voided, $0 moved.</li>
+          <li>Open the Shop: search real products from Channel3 by text or photo, open one, and buy it through the same hold → check → capture.</li>
         </ol>
       </section>
 

@@ -48,6 +48,8 @@ export async function assess(p: {
   merchant: MerchantRow;
   marketQuery: string;
   marketSeedCents: number | null;
+  /** Exact-product baseline (e.g. the same item at other stores on Channel3); skips the search-based one. */
+  baselineOverride?: MarketBaseline | null;
   pageText: string;
   policy: Policy;
   now: Date;
@@ -61,7 +63,7 @@ export async function assess(p: {
   );
   const firstPurchase = (prior?.n ?? 0) === 0;
 
-  const baseline = await marketBaseline(p.marketQuery, p.familyId, p.marketSeedCents);
+  const baseline = p.baselineOverride ?? (await marketBaseline(p.marketQuery, p.familyId, p.marketSeedCents));
   const priceRatio = baseline ? p.amountCents / baseline.medianCents : null;
 
   const j = await judge({

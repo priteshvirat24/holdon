@@ -9,17 +9,43 @@ import { logEvent } from "../events";
 
 // ------------------------------------------------------------------ RDAP
 
-export async function domainRegisteredAt(domain: string): Promise<Date | null> {
-  try {
-    const res = await fetch(`https://rdap.org/domain/${encodeURIComponent(domain)}`, {
-      headers: { Accept: "application/rdap+json" },
-      signal: AbortSignal.timeout(8000),
-      redirect: "follow",
+// rdap.org answers 403 to clients without a User-Agent (e.g. Node's fetch), so always send one.
+const RDAP_HEADERS = { Accept: "application/rdap+json", "User-Agent": "HoldOn-RiskCheck/1.0" };
+
+async function rdapRegistration(url: string): Promise<Date | null> {
+  const res = await fetch(url, { headers: RDAP_HEADERS, signal: AbortSignal.timeout(8000), redirect: "follow" });
+  if (!res.ok) return null;
+  const data = await res.json();
+  const reg = (data.events ?? []).find((e: any) => e.eventAction === "registration");
+  return reg?.eventDate ? new Date(reg.eventDate) : null;
+}
+
+let ianaBootstrap: Promise<[string[], string[]][]> | null = null;
+/** IANA's list of RDAP servers per TLD: the fallback when rdap.org is unavailable. */
+async function registryRdapBase(domain: string): Promise<string | null> {
+  ianaBootstrap ??= fetch("https://data.iana.org/rdap/dns.json", { signal: AbortSignal.timeout(8000) })
+    .then((r) => r.json())
+    .then((d) => d.services ?? [])
+    .catch(() => {
+      ianaBootstrap = null;
+      return [];
     });
-    if (!res.ok) return null;
-    const data = await res.json();
-    const reg = (data.events ?? []).find((e: any) => e.eventAction === "registration");
-    return reg?.eventDate ? new Date(reg.eventDate) : null;
+  const tld = domain.split(".").pop()!.toLowerCase();
+  const hit = (await ianaBootstrap).find(([tlds]) => tlds.includes(tld));
+  return hit?.[1]?.[0] ?? null;
+}
+
+export async function domainRegisteredAt(domain: string): Promise<Date | null> {
+  const d = encodeURIComponent(domain);
+  try {
+    const viaProxy = await rdapRegistration(`https://rdap.org/domain/${d}`);
+    if (viaProxy) return viaProxy;
+  } catch {
+    /* try the registry directly */
+  }
+  try {
+    const base = await registryRdapBase(domain);
+    return base ? await rdapRegistration(`${base.replace(/\/?$/, "/")}domain/${d}`) : null;
   } catch {
     return null;
   }

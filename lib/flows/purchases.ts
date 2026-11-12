@@ -15,7 +15,9 @@ import { authorizeOrder, captureAuthorization, createAuthorizeOrder, voidAuthori
 import { transition, type PurchaseEvent, type PurchaseState, STATE_LABEL } from "../state/purchase";
 import { assess, type MerchantRow } from "../risk/assess";
 import { findProduct, storePageText } from "../stores";
-import { fetchPageText } from "../risk/signals";
+import { fetchPageText, type MarketBaseline } from "../risk/signals";
+import { channel3Configured } from "../risk/signals";
+import { freshOffer, listingText, productBaseline, c3 } from "../channel3";
 import { topReasons } from "../risk/judge";
 
 export interface PurchaseRow {
@@ -75,7 +77,17 @@ async function upsertMerchant(m: { domain: string; name: string; registeredDaysA
 
 export type PurchaseSource =
   | { kind: "store"; slug: string; sku: string }
-  | { kind: "channel3"; title: string; url: string; domain: string; priceCents: number; query: string };
+  | {
+      kind: "channel3";
+      title: string;
+      url: string;
+      domain: string;
+      priceCents: number;
+      query: string;
+      /** Channel3 product id: when present, price, title and link are re-read from Channel3 on the server. */
+      productId?: string;
+      selection?: Record<string, string>;
+    };
 
 export async function startPurchase(familyId: string, src: PurchaseSource) {
   let item: string, category: string | null, amount: number, merchant: MerchantRow, url: string | null;
@@ -93,6 +105,11 @@ export async function startPurchase(familyId: string, src: PurchaseSource) {
     amount = found.product.priceCents;
     url = `/stores/${found.store.slug}?p=${found.product.sku}`;
   } else {
+    if (src.productId && channel3Configured()) {
+      // Never trust a price from the browser: ask Channel3 what this store charges right now.
+      const fresh = await freshOffer(src.productId, src.domain, src.selection, familyId);
+      src = { ...src, title: fresh.product.title, url: fresh.offer.url, priceCents: fresh.priceCents, query: src.query || fresh.product.title };
+    }
     merchant = await upsertMerchant({ domain: src.domain, name: src.domain });
     item = src.title;
     category = null;
@@ -152,14 +169,27 @@ export async function onBuyerApproved(purchaseId: string): Promise<PurchaseRow> 
   let pageText = "";
   let marketQuery = p.item;
   let marketSeed: number | null = null;
+  let baselineOverride: MarketBaseline | null = null;
   if (src?.kind === "store") {
     const f = findProduct(src.slug, src.sku)!;
     pageText = storePageText(f.store, f.product);
     marketQuery = f.product.marketQuery;
     marketSeed = f.product.marketSeedCents;
   } else if (src?.kind === "channel3") {
-    pageText = await fetchPageText(src.url);
     marketQuery = src.query;
+    if (src.productId && channel3Configured()) {
+      // Exact product: compare with the other stores selling it, and read the listing Channel3 extracted.
+      // (We don't fetch the buy link itself: that's an affiliate click, not a page to scrape.)
+      try {
+        const product = await c3().products.retrieve({ product_id: src.productId, selected_options: src.selection });
+        baselineOverride = await productBaseline(product, src.domain);
+        pageText = listingText(product);
+      } catch {
+        /* fall back to a search-based baseline below */
+      }
+    } else if (!/^https:\/\/buy\.trychannel3\.com\//.test(src.url)) {
+      pageText = await fetchPageText(src.url);
+    }
   }
 
   const a = await assess({
@@ -173,6 +203,7 @@ export async function onBuyerApproved(purchaseId: string): Promise<PurchaseRow> 
     merchant,
     marketQuery,
     marketSeedCents: marketSeed,
+    baselineOverride,
     pageText,
     policy,
     now: familyNow(fam),

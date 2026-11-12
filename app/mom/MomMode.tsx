@@ -16,6 +16,7 @@ type Option = {
   url?: string;
   image?: string | null;
   query?: string;
+  productId?: string;
 };
 
 const SUGGESTIONS = ["My blood-pressure tablets", "That massage chair from Facebook", "A reading lamp", "A $100 gift card"];
@@ -90,6 +91,7 @@ export default function MomMode({ clientId, embed }: { clientId: string; embed: 
           merchant: p.offers[0].domain,
           domain: p.offers[0].domain,
           url: p.offers[0].url,
+          productId: p.id,
           image: p.image,
           query: p.query,
         }));
@@ -164,7 +166,7 @@ export default function MomMode({ clientId, embed }: { clientId: string; embed: 
     const src =
       chosen!.kind === "store"
         ? { kind: "store", slug: chosen!.slug, sku: chosen!.sku }
-        : { kind: "channel3", title: chosen!.title, url: chosen!.url, domain: chosen!.domain, priceCents: chosen!.priceCents, query: chosen!.query };
+        : { kind: "channel3", title: chosen!.title, url: chosen!.url, domain: chosen!.domain, priceCents: chosen!.priceCents, query: chosen!.query, productId: chosen!.productId };
     const r = await api<{ purchaseId: string; orderId: string }>("/api/purchases", { source: src });
     purchaseIdRef.current = r.purchaseId;
     setPurchase({ id: r.purchaseId, state: "AWAITING_BUYER", item: chosen!.title, amount_cents: chosen!.priceCents });
@@ -203,7 +205,7 @@ export default function MomMode({ clientId, embed }: { clientId: string; embed: 
       <h1 className="font-display text-4xl leading-tight sm:text-5xl">
         Hello {mom?.name ?? "there"} <span aria-hidden>👋</span>
       </h1>
-      <p className="mt-2 text-xl text-muted">{listening ? "I'm listening… tap the button when you're done." : "What would you like today? Just say it."}</p>
+      <p className="mt-2 text-xl text-muted-foreground">{listening ? "I'm listening… tap the button when you're done." : "What would you like today? Just say it."}</p>
 
       <div className="mt-6 flex items-stretch gap-3">
         <button
@@ -244,7 +246,7 @@ export default function MomMode({ clientId, embed }: { clientId: string; embed: 
 
       {options && !purchase && (
         <section className="mt-6 space-y-3">
-          {options.length === 0 && <p className="text-lg text-muted">I couldn&apos;t find that. Try saying it another way?</p>}
+          {options.length === 0 && <p className="text-lg text-muted-foreground">I couldn&apos;t find that. Try saying it another way?</p>}
           {options.map((o, i) => {
             const active = chosen === o;
             return (
@@ -258,7 +260,7 @@ export default function MomMode({ clientId, embed }: { clientId: string; embed: 
                   )}
                   <span className="min-w-0 flex-1">
                     <span className="block text-xl font-semibold leading-snug">{o.title}</span>
-                    <span className="block text-base text-muted">
+                    <span className="block text-base text-muted-foreground">
                       {o.merchant}
                       {o.blurb ? ` · ${o.blurb}` : ""}
                     </span>
@@ -289,7 +291,7 @@ export default function MomMode({ clientId, embed }: { clientId: string; embed: 
                         />
                       </PayPalScriptProvider>
                     ) : null}
-                    <p className="mt-2 text-center text-sm text-muted">HoldOn checks every purchase before any money moves.</p>
+                    <p className="mt-2 text-center text-sm text-muted-foreground">HoldOn checks every purchase before any money moves.</p>
                   </div>
                 )}
               </div>
@@ -302,12 +304,12 @@ export default function MomMode({ clientId, embed }: { clientId: string; embed: 
 
       {!embed && recent.length > 0 && (
         <section className="mt-10">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">Recently</h2>
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Recently</h2>
           <ul className="divide-y divide-line rounded-2xl border border-line bg-card">
             {recent.map((p: any) => (
               <li key={p.id} className="flex items-center justify-between px-4 py-3 text-base">
                 <span className="truncate">{p.item}</span>
-                <span className="ml-3 shrink-0 text-muted">{momStateWord(p.state)}</span>
+                <span className="ml-3 shrink-0 text-muted-foreground">{momStateWord(p.state)}</span>
               </li>
             ))}
           </ul>
@@ -361,7 +363,7 @@ function Status({ p, approverName, onDone }: { p: any; approverName?: string; on
         <h2 className={`font-display text-3xl ${tone.fg}`}>{tone.title}</h2>
       </div>
       <p className="mt-3 text-2xl leading-snug">{momLine(p, approverName) || "Waiting for PayPal…"}</p>
-      <p className="mt-3 text-lg text-muted">
+      <p className="mt-3 text-lg text-muted-foreground">
         {p.item} · {dollars(p.amount_cents)}
       </p>
       {settled && (

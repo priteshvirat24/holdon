@@ -7,6 +7,7 @@ export default function Home() {
       <header className="flex items-center justify-between">
         <Logo />
         <nav className="flex gap-4 text-sm">
+          <Link href="/shop" className="underline">Shop</Link>
           <Link href="/demo" className="underline">Demo panel</Link>
           <Link href="/dashboard" className="underline">Ledger</Link>
         </nav>
@@ -16,7 +17,7 @@ export default function Home() {
         <h1 className="font-display text-5xl leading-[1.05] sm:text-6xl">
           The family wallet that knows when to say <span className="text-marigold">&ldquo;hold on.&rdquo;</span>
         </h1>
-        <p className="mt-6 text-xl leading-relaxed text-muted">
+        <p className="mt-6 text-xl leading-relaxed text-muted-foreground">
           Siblings chip in for Mom. Mom spends. HoldOn&apos;s AI collects the money so nobody has to nag, and puts every risky
           payment on a real <b className="text-ink">PayPal authorization hold</b> until family says yes.
         </p>
@@ -35,13 +36,13 @@ export default function Home() {
           <div key={title} className="rounded-3xl border border-line bg-card p-6">
             <div className="text-3xl">{icon}</div>
             <h2 className="font-display mt-3 text-2xl">{title}</h2>
-            <p className="mt-2 text-muted">{text}</p>
+            <p className="mt-2 text-muted-foreground">{text}</p>
           </div>
         ))}
       </section>
 
-      <footer className="mt-16 border-t border-line pt-6 text-sm text-muted">
-        Built for the PayPal AI Hackathon · PayPal Orders, Payments, Invoicing, Payouts &amp; Webhooks (sandbox) · Mistral · Channel3 · AG Grid
+      <footer className="mt-16 border-t border-line pt-6 text-sm text-muted-foreground">
+        Built for the PayPal AI Hackathon · PayPal Orders, Payments, Invoicing, Payouts &amp; Webhooks (sandbox) · Mistral · Channel3 (product catalog and UI) · AG Grid &amp; AG Charts
       </footer>
     </main>
   );

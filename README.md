@@ -7,9 +7,11 @@ Siblings chip in every month for Mom. Mom spends. HoldOn is an AI money steward 
 - **Bad Cop:** collects everyone's share through PayPal invoices so no sibling ever has to chase another, with AI-written nudges on an escalating ladder and an agent that handles "can I pay half?", "next Friday" or "can Priya cover me?".
 - **Guardian:** puts every purchase Mom makes on a real **PayPal authorization hold**, checks the shop (domain age, real market price, the page itself, including hidden instructions aimed at AI agents), then **captures** it, or asks the family and **voids** it on "no". Undecided holds void themselves. Safe by default: if nobody says yes, $0 moves.
 
+- **Shop (real stores):** a Channel3-powered shop: search millions of real products by text or photo, filter, and open a product page with variants, every store selling it, 90-day price history and similar items. Buying goes through the same PayPal hold → check → capture; direct store links are Channel3's commission links.
+
 - **Agentic refills:** after Mom's first trusted pharmacy purchase, PayPal **Vault** saves her PayPal, and HoldOn's agent reorders her regular medicine on its own, with no popup and no Mom. The agent gets no special powers: its purchase goes through the same hold → check → capture pipeline.
 
-Built for the PayPal AI Hackathon.
+Built for the PayPal AI Hackathon. Submission text: [docs/DEVPOST.md](docs/DEVPOST.md) · Demo video script: [docs/VIDEO_SCRIPT.md](docs/VIDEO_SCRIPT.md)
 
 **Risk engine scorecard** ([evals/SCORECARD.md](evals/SCORECARD.md), `npm run eval`, 20 labelled purchases):
 
@@ -58,7 +60,21 @@ Every write carries a stable `PayPal-Request-Id` (idempotent retries), every sta
 
 **Safety design:** deterministic rules set the risk floor (domain age, price vs. market, first purchase, per-item limit, blocked categories). The AI can only **add** risk (0–25), never lower it. Only the payment state machine can capture, never the model. Text on shop pages or in chat is treated as data, never instructions.
 
-**Other tools:** Channel3 (real market prices for the price-anomaly check, when a key is set), RDAP (domain registration date, free), AG Grid (family ledger), Telegram (optional mirror of the family chat).
+## How Channel3 is used
+
+| Need | Channel3 |
+|---|---|
+| The shop's search (text, photo, or both) with brand, store, category, price and colour filters | `products.search` through the official SDK, from server actions, so the key never reaches the browser |
+| Product pages with variant selection | `products.retrieve` with `selected_options`, using Channel3 UI's `useVariantSelection` |
+| "Similar products" | `products.findSimilar` |
+| Price history and the "is this a normal price?" pre-check | `priceTracking.retrieveHistory` |
+| Risk engine price baseline | The same exact product at the other stores selling it, plus its 90-day mean (search-based median when there's no exact match) |
+| UI | Channel3 UI components (shadcn registry): `product-search`, `product-details`, `offers-list`, `price-history-chart` and more, restyled to HoldOn's palette |
+| Revenue | Every store link is a Channel3 commission link (`rel="sponsored"`), attributed to the family with `x-user-id` |
+
+At checkout, HoldOn re-reads the price from Channel3 on the server instead of trusting the browser. It never fetches the buy link itself: that would count as a click.
+
+**Other tools:** RDAP (domain registration date, free), AG Grid and AG Charts (family ledger and outcome chart), Telegram (optional mirror of the family chat).
 
 ---
 
@@ -67,14 +83,15 @@ Every write carries a stable `PayPal-Request-Id` (idempotent retries), every sta
 Requirements: Node 20+, a free PayPal Developer account.
 
 ```bash
-git clone <this repo> holdon && cd holdon
+git clone https://github.com/priteshvirat24/holdon.git && cd holdon
 npm install
 cp .env.example .env.local
 ```
 
 1. In **developer.paypal.com → Apps & Credentials → Sandbox**, open (or create) an app and paste its Client ID and Secret into `.env.local` (or run `npm run keys` for a hidden prompt that also tests them).
 2. Add a Mistral key (`MISTRAL_API_KEY`). Without one, a transparent offline heuristic is used and the chat agent is disabled.
-3. In **Sandbox → Accounts**, copy a *Personal* sandbox account email into `PAYPAL_SANDBOX_MOM_EMAIL` (receives the allowance) and note its password: you'll use it to log in to the PayPal popup as Mom or a sibling.
+3. Optional: add a Channel3 key (`CHANNEL3_API_KEY`, free at trychannel3.com) to turn on the Shop and real market prices.
+4. In **Sandbox → Accounts**, copy a *Personal* sandbox account email into `PAYPAL_SANDBOX_MOM_EMAIL` (receives the allowance) and note its password: you'll use it to log in to the PayPal popup as Mom or a sibling.
 
 ```bash
 npm run dev
@@ -146,6 +163,7 @@ Put the returned id in `PAYPAL_WEBHOOK_ID`. Without webhooks the app still works
 | `/dashboard` | AG Grid ledger, KPIs, and an "under the hood" feed of every PayPal and AI call |
 | `/demo` | Reset, fast-forward the family clock (to show the nudge ladder and hold timeouts), run jobs, trigger the agent's monthly refill |
 | `/pay/[id]` | A sibling pays their share with PayPal (recorded on the PayPal invoice) |
+| `/shop` | Real products from Channel3 (text or photo search, filters, product pages, similar items), bought through HoldOn's hold → check → capture |
 | `/stores/*` | Fictional demo shops (`.demo` domains), including the scam store with hidden AI instructions |
 
 ## Project layout
@@ -155,6 +173,9 @@ lib/paypal/        PayPal client (token cache, idempotency, audit log) + Orders/
 lib/state/         Purchase state machine (pure, unit-tested)
 lib/flows/         purchases (Guardian), contributions (Bad Cop), card actions
 lib/risk/          rules (floor), signals (RDAP, Channel3, page text), judge (Mistral), assess
+lib/channel3.ts    Channel3 SDK on the server: fresh offers at checkout, exact-product price baseline, pre-check
+app/shop/          the Channel3 shop (server actions + Channel3 UI components)
+components/        Channel3 UI and shadcn components
 lib/badcop/        nudge ladder + AI nudge writer
 lib/agent/         steward agent (Mistral tool calls)
 lib/mistral/       client: model fallbacks, rate-limit handling, JSON schema
@@ -164,6 +185,7 @@ app/api/           routes: purchases, cards, chat, contributions, PayPal webhook
 ## Honest limitations and the production path
 
 - **Demo stores settle to the HoldOn sandbox business account,** so HoldOn can capture or void. In production this runs on PayPal's multiparty platform with HoldOn as a partner, or as a checkout guard (browser extension) on any store.
+- **Sandbox account country matters.** With a non-US sandbox business account, PayPal refuses Payouts ("not allowed to send this payout") and card processing. Mom's PayPal-account purchases still work. Use a US business sandbox account to see everything.
 - **The `.demo` shop registration dates are seeded.** Real domains are checked live via RDAP.
 - **Money never sits with HoldOn:** it moves only on PayPal's rails, and HoldOn orchestrates.
 

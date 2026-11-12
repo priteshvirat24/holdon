@@ -6,6 +6,7 @@
  */
 import "server-only";
 import { chatJson, MODELS, mistralConfigured } from "../mistral/client";
+import { logEvent } from "../events";
 import type { RiskLine } from "./rules";
 
 export interface JudgeInput {
@@ -73,7 +74,9 @@ export async function judge(input: JudgeInput): Promise<JudgeOutput> {
     parent_first_name: input.parentName,
     approver_first_name: input.approverName,
   };
-  const { data, model } = await chatJson<Omit<JudgeOutput, "model">>({
+  let reply: { data: Omit<JudgeOutput, "model">; model: string };
+  try {
+    reply = await chatJson<Omit<JudgeOutput, "model">>({
     purpose: "risk.judge",
     familyId: input.familyId,
     models: [MODELS.writer, MODELS.fast, MODELS.judge, MODELS.code], // 14B → 8B (~2-4s); Large 4 (~20s) only if both are rate-limited
@@ -85,8 +88,14 @@ export async function judge(input: JudgeInput): Promise<JudgeOutput> {
       },
     ],
     jsonSchema: { name: "risk_judgement", schema: SCHEMA },
-  });
-  return sanitize(data, model);
+    });
+  } catch (e: any) {
+    // Mistral down, rate-limited or out of budget: never leave a PayPal hold stuck mid-check.
+    // The deterministic rules still set the risk floor; the heuristic only adds to it.
+    await logEvent({ familyId: input.familyId, type: "ai.judge.fallback", source: "agent", payload: { error: String(e?.message ?? e).slice(0, 200) } });
+    return { ...offlineJudge(input), model: "offline-heuristic (Mistral unavailable)" };
+  }
+  return sanitize(reply.data, reply.model);
 }
 
 function sanitize(d: Omit<JudgeOutput, "model">, model: string): JudgeOutput {
@@ -101,7 +110,7 @@ function sanitize(d: Omit<JudgeOutput, "model">, model: string): JudgeOutput {
   };
 }
 
-/** Used only when no Mistral key is configured: a transparent heuristic. */
+/** Used when no Mistral key is configured, or Mistral is unavailable: a transparent heuristic. */
 function offlineJudge(i: JudgeInput): JudgeOutput {
   const t = i.pageText.toLowerCase();
   const flags: string[] = [];

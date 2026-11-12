@@ -61,14 +61,14 @@ export default function FamilyChat({ initialMemberId, embed }: { initialMemberId
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-marigold text-lg">🏠</span>
               <div>
                 <div className="font-semibold leading-tight">{snap?.family?.name ?? "…"} family</div>
-                <div className="text-xs text-muted">{members.map((m) => m.name).join(", ")} · HoldOn</div>
+                <div className="text-xs text-muted-foreground">{members.map((m) => m.name).join(", ")} · HoldOn</div>
               </div>
             </div>
             <ModeBadge integrations={snap?.integrations} />
           </div>
           {fund && (
             <div className="mt-3">
-              <div className="flex justify-between text-xs text-muted">
+              <div className="flex justify-between text-xs text-muted-foreground">
                 <span>{snap.family.parent_name}&apos;s fund this month</span>
                 <span className="tabular">
                   {dollars(fund.collected)} / {dollars(fund.target)}
@@ -80,7 +80,7 @@ export default function FamilyChat({ initialMemberId, embed }: { initialMemberId
             </div>
           )}
           <div className="mt-3 flex items-center gap-1 overflow-x-auto text-sm">
-            <span className="mr-1 text-xs text-muted">Viewing as</span>
+            <span className="mr-1 text-xs text-muted-foreground">Viewing as</span>
             {members.map((m) => (
               <button
                 key={m.id}
@@ -107,19 +107,19 @@ export default function FamilyChat({ initialMemberId, embed }: { initialMemberId
                   {!mine && (
                     <div className={`mb-0.5 text-xs font-semibold ${bot ? "text-[#b07900]" : "text-sky"}`}>
                       {author}
-                      {m.audience !== "group" && <span className="ml-1 font-normal text-muted">· private to you</span>}
+                      {m.audience !== "group" && <span className="ml-1 font-normal text-muted-foreground">· private to you</span>}
                     </div>
                   )}
                   <div className="whitespace-pre-wrap text-[15px] leading-snug">{m.text}</div>
                   {m.card && <CardView card={m.card} me={me} busy={busy} onPress={press} />}
-                  <div className="mt-0.5 text-right text-[10px] text-muted">
+                  <div className="mt-0.5 text-right text-[10px] text-muted-foreground">
                     {new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </div>
                 </div>
               </div>
             );
           })}
-          {busy === "chat" && <div className="px-2 text-sm text-muted">HoldOn is typing…</div>}
+          {busy === "chat" && <div className="px-2 text-sm text-muted-foreground">HoldOn is typing…</div>}
           <div ref={bottom} />
         </div>
 

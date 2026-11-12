@@ -162,7 +162,9 @@ Rules:
   ];
 
   for (let i = 0; i < 4; i++) {
-    const r = await chat({
+    let r: Awaited<ReturnType<typeof chat>>;
+    try {
+      r = await chat({
       purpose: "steward",
       familyId: p.familyId,
       models: [MODELS.fast, MODELS.judge],
@@ -170,7 +172,14 @@ Rules:
       tools: TOOLS,
       toolChoice: "auto",
       maxTokens: 700,
-    });
+      });
+    } catch (e: any) {
+      await logEvent({ familyId: p.familyId, type: "ai.agent.unavailable", source: "agent", payload: { error: String(e?.message ?? e).slice(0, 200) } });
+      return post({
+        familyId: p.familyId,
+        text: "Sorry, my AI brain is unavailable for a moment, so I can't act on chat messages right now. The Pay and Approve buttons still work.",
+      });
+    }
     if (!r.toolCalls.length) {
       const reply = r.text.trim() || "Got it 👍";
       return post({ familyId: p.familyId, text: reply.slice(0, 500) });

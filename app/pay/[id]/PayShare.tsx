@@ -29,17 +29,17 @@ export default function PayShare({
     <main className="mx-auto max-w-md px-5 py-10">
       <Logo />
       <div className="mt-8 rounded-3xl border border-line bg-card p-6">
-        <p className="text-muted">Hi {memberName} 👋</p>
+        <p className="text-muted-foreground">Hi {memberName} 👋</p>
         <h1 className="font-display mt-1 text-3xl">Mom&apos;s fund · your share{c.part > 1 ? ` (part ${c.part})` : ""}</h1>
         <p className="font-display mt-4 text-5xl tabular">{dollars(c.amount_cents)}</p>
-        {c.invoice_id && <p className="mt-2 text-xs text-muted">PayPal invoice {c.invoice_id}</p>}
+        {c.invoice_id && <p className="mt-2 text-xs text-muted-foreground">PayPal invoice {c.invoice_id}</p>}
 
         {done ? (
           <div className="rise mt-6 rounded-2xl bg-sage-soft p-4 text-sage">
             <b>Paid. Thank you 💛</b> HoldOn has told the family, and the PayPal invoice is marked paid.
           </div>
         ) : c.status !== "sent" ? (
-          <p className="mt-6 text-muted">This share is {c.status}.</p>
+          <p className="mt-6 text-muted-foreground">This share is {c.status}.</p>
         ) : (
           <div className="mt-6">
             {simulated ? (
@@ -75,7 +75,7 @@ export default function PayShare({
         )}
         {error && <p className="mt-4 rounded-xl bg-coral-soft px-3 py-2 text-sm text-coral">{error}</p>}
       </div>
-      <Link href="/family" className="mt-6 block text-center text-sm text-muted underline">
+      <Link href="/family" className="mt-6 block text-center text-sm text-muted-foreground underline">
         Back to the family chat
       </Link>
     </main>
