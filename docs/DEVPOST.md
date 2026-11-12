@@ -126,4 +126,4 @@ PayPal's authorize-then-capture flow is a natural fit for AI agents: it gives a 
 
 - Repository: https://github.com/priteshvirat24/holdon (make public before submitting)
 - Demo video (YouTube, public, under 3 minutes): _add after upload_
-- Hosted demo: _add the Render URL after deploying_, or point judges to the README's "Run it locally"
+- Hosted demo: https://holdon-7x87.onrender.com (start at /demo → "Reset & seed the Sharma family"). Also runnable locally from the README

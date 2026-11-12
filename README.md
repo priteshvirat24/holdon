@@ -11,6 +11,8 @@ Siblings chip in every month for Mom. Mom spends. HoldOn is an AI money steward 
 
 - **Agentic refills:** after Mom's first trusted pharmacy purchase, PayPal **Vault** saves her PayPal, and HoldOn's agent reorders her regular medicine on its own, with no popup and no Mom. The agent gets no special powers: its purchase goes through the same hold → check → capture pipeline.
 
+**Live demo:** https://holdon-7x87.onrender.com (start at [/demo](https://holdon-7x87.onrender.com/demo); free Render instance, so the first load after a quiet spell takes about a minute)
+
 Built for the PayPal AI Hackathon. Submission text: [docs/DEVPOST.md](docs/DEVPOST.md) · Demo video script: [docs/VIDEO_SCRIPT.md](docs/VIDEO_SCRIPT.md)
 
 **Risk engine scorecard** ([evals/SCORECARD.md](evals/SCORECARD.md), `npm run eval`, 20 labelled purchases):
@@ -142,14 +144,14 @@ PayPal only lets some countries send Payouts. If the allowance step says *"You l
 PayPal needs a public https URL. After deploying (or with a tunnel), call:
 
 ```bash
-curl -X POST https://YOUR-APP/api/paypal/setup-webhook -H 'Content-Type: application/json' -d '{"publicUrl":"https://YOUR-APP"}'
+curl -X POST "https://YOUR-APP/api/paypal/setup-webhook?secret=$CRON_SECRET"
 ```
 
-Put the returned id in `PAYPAL_WEBHOOK_ID`. Without webhooks the app still works: API responses update state directly, and the agent's `check_my_contribution` tool reads invoice status from PayPal.
+Put the returned id in `PAYPAL_WEBHOOK_ID`. On a deployment (where `CRON_SECRET` is set) the call needs that secret and only registers `APP_URL`; locally, pass `-d '{"publicUrl":"https://your-tunnel"}'` instead. Without webhooks the app still works: API responses update state directly, and the agent's `check_my_contribution` tool reads invoice status from PayPal.
 
 ## Deploy on Render
 
-`render.yaml` defines the web service, a Postgres database and an hourly cron job that runs the Bad Cop ladder and expires undecided holds. Render → New → Blueprint → this repo, then fill in the PayPal and Mistral keys and `APP_URL`.
+`render.yaml` defines the web service, a Postgres database and an hourly cron job that runs the Bad Cop ladder and expires undecided holds. Render → New → Blueprint → this repo, then fill in the PayPal, Mistral and Channel3 keys and `APP_URL`. The web service and database are on Render's free plan; the cron job is paid and optional (the demo panel's "Run scheduled jobs now" does the same). After the first deploy, register the PayPal webhook (above) and set `PAYPAL_WEBHOOK_ID`.
 
 ---
 

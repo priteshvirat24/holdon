@@ -34,6 +34,7 @@ services:
         sync: false
 
   # Bad Cop nudge ladder + releasing undecided holds, every hour.
+  # Optional and NOT free (Render bills cron jobs). Without it, use /demo → "Run scheduled jobs now".
   - type: cron
     name: holdon-tick
     runtime: node
